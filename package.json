@@ -1,0 +1,79 @@
+{
+  "name": "sanity-plugin-webhooks-trigger",
+  "version": "1.0.0",
+  "description": "",
+  "keywords": [
+    "sanity",
+    "sanity-plugin"
+  ],
+  "homepage": "https://github.com/flayks/sanity-plugin-webhooks-trigger#readme",
+  "bugs": {
+    "url": "https://github.com/flayks/sanity-plugin-webhooks-trigger/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/flayks/sanity-plugin-webhooks-trigger.git"
+  },
+  "license": "MIT",
+  "author": "Félix Péault (Flayks) <hello@flayks.com>",
+  "sideEffects": false,
+  "type": "commonjs",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "import": "./dist/index.mjs",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "sanity.json",
+    "src",
+    "v2-incompatible.js"
+  ],
+  "scripts": {
+    "build": "plugin-kit verify-package --silent && pkg-utils build --strict --check --clean",
+    "format": "prettier --write --cache --ignore-unknown .",
+    "link-watch": "plugin-kit link-watch",
+    "lint": "eslint .",
+    "prepublishOnly": "npm run build",
+    "watch": "pkg-utils watch --strict"
+  },
+  "dependencies": {
+    "@sanity/icons": "^3.2.0",
+    "@sanity/incompatible-plugin": "^1.0.4",
+    "@sanity/ui": "^2.5.0",
+    "@types/react-dom": "^18.3.0"
+  },
+  "devDependencies": {
+    "@sanity/pkg-utils": "^6.10.0",
+    "@sanity/plugin-kit": "^4.0.17",
+    "@types/react": "^18.3.3",
+    "@typescript-eslint/eslint-plugin": "^7",
+    "@typescript-eslint/parser": "^7",
+    "eslint": "^8",
+    "eslint-config-prettier": "^9",
+    "eslint-config-sanity": "^7.1.2",
+    "eslint-plugin-prettier": "^5.1.3",
+    "eslint-plugin-react": "^7.34.3",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "prettier": "^3.3.2",
+    "prettier-plugin-packagejson": "^2.5.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "sanity": "^3.48.1",
+    "styled-components": "^6.1.11",
+    "typescript": "^5.4"
+  },
+  "peerDependencies": {
+    "react": "^18",
+    "sanity": "^3"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "browserslist": "extends @sanity/browserslist-config"
+}
