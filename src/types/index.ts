@@ -1,9 +1,17 @@
 import React from 'react'
 
+export interface WebhooksTriggerPluginTool {
+  options: {
+    text: string
+    encryptionSalt: string
+  }
+}
+
 export interface WebhooksTriggerConfig {
   name?: string
   icon?: React.ReactNode
   title?: string
+  tool?: WebhooksTriggerPluginTool
 }
 
 export interface Webhook {

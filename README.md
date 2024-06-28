@@ -36,12 +36,15 @@ export default defineConfig({
   //...
   plugins: [
     webhooksTrigger({
-      title: 'Deploy', // Default value
-      text: '', // TODO
+      // title: 'Deploy',
+      // text: 'Custom text',
+      // encryptionSalt: 'replace-me-with-a-strong-string'
     })
   ],
 })
 ```
+
+⚠️ If you are using an auth token with your Webhook, it is strongy recommended to use an encryption salt. You can generate one using `openssl rand -hex 64` or any other method.
 
 ## License
 

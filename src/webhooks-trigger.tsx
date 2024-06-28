@@ -14,27 +14,36 @@ import {
   ThemeProvider,
 } from '@sanity/ui'
 import {buildTheme} from '@sanity/ui/theme'
+import {customAlphabet} from 'nanoid'
 import {ReactElement, useCallback, useEffect, useState} from 'react'
 import {useClient} from 'sanity'
 
 import WebhookFormModal from './modal'
-import {Webhook} from './types'
+import {decryptToken, encryptToken} from './security'
+import {Webhook, WebhooksTriggerConfig, WebhooksTriggerPluginTool} from './types'
 
 const theme = buildTheme()
+const WEBHOOK_TYPE = 'webhook_triggers'
+const defaultText =
+  'You can here deploy your static website after finishing content edits by manually calling a webhook that triggers a new build of your site. Or simply run a webhook from Sanity!'
 
-const WebhooksTrigger = (): ReactElement => {
-  const [webhooks, setWebhooks] = useState<Webhook[]>([])
-  const [showModal, setShowModal] = useState(false)
-  const [editingWebhook, setEditingWebhook] = useState<Webhook | null>(null)
-  const [triggeringWebhook, setTriggeringWebhook] = useState<string | null>(null)
+const WebhooksTrigger = ({tool}: WebhooksTriggerConfig): ReactElement => {
+  const {options} = tool as WebhooksTriggerPluginTool
+  const encryptionSalt = options.encryptionSalt
 
   const client = useClient({apiVersion: '2021-06-07'})
+
+  const [webhooks, setWebhooks] = useState<Webhook[]>([])
+  const [showModal, setShowModal] = useState(false)
+  const [triggeringWebhook, setTriggeringWebhook] = useState<string | null>(null)
+  const [editingWebhook, setEditingWebhook] = useState<Webhook | null>(null)
+  const [deletingWebhook, setDeletingWebhook] = useState<string | null>(null)
 
   /**
    * Fetch all Webhooks
    */
   const fetchWebhooks = useCallback(async () => {
-    const result = await client.fetch('*[_type == "webhook"]')
+    const result = await client.fetch(`*[_type == "${WEBHOOK_TYPE}"]`)
     setWebhooks(result)
   }, [client])
 
@@ -47,24 +56,29 @@ const WebhooksTrigger = (): ReactElement => {
    */
   const handleSubmitWebhook = useCallback(
     async (webhook: Partial<Webhook>) => {
-      if (webhook.name && webhook.url && webhook.method) {
-        if (webhook._id) {
-          // Edit existing webhook
-          await client.patch(webhook._id).set(webhook).commit()
-        } else {
-          // Add new webhook
-          await client.create({
-            _type: 'webhook',
-            ...webhook,
-          })
-        }
+      if (!webhook.name || !webhook.url || !webhook.method) return
 
-        setShowModal(false)
-        setEditingWebhook(null)
-        fetchWebhooks()
+      if (webhook.authToken) {
+        webhook.authToken = encryptToken(webhook.authToken, encryptionSalt)
       }
+
+      if (webhook._id) {
+        // Edit webhook
+        await client.patch(webhook._id).set(webhook).commit()
+      } else {
+        // Create new webhook
+        await client.create({
+          _type: WEBHOOK_TYPE,
+          _id: `${WEBHOOK_TYPE}.${customAlphabet('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 12)()}`,
+          ...webhook,
+        })
+      }
+
+      setShowModal(false)
+      setEditingWebhook(null)
+      fetchWebhooks()
     },
-    [client, fetchWebhooks],
+    [client, fetchWebhooks, encryptionSalt],
   )
 
   /**
@@ -90,7 +104,7 @@ const WebhooksTrigger = (): ReactElement => {
             method: webhook.method,
             headers: {
               ...(webhook.authToken && {
-                Authorization: `Bearer ${webhook.authToken}`,
+                Authorization: `Bearer ${decryptToken(webhook.authToken, encryptionSalt)}`,
               }),
               ...(isGithubAction && {
                 Accept: 'application/vnd.github+json',
@@ -105,14 +119,11 @@ const WebhooksTrigger = (): ReactElement => {
             }),
           })
 
-          const success = response.ok
-          const lastRunTime = new Date().toISOString()
-
           await client
             .patch(webhook._id)
             .set({
-              lastRunTime,
-              lastRunStatus: success ? 'success' : 'failed',
+              lastRunTime: new Date().toISOString(),
+              lastRunStatus: response.ok ? 'success' : 'failed',
             })
             .commit()
         } catch (error) {
@@ -132,7 +143,7 @@ const WebhooksTrigger = (): ReactElement => {
         setTriggeringWebhook(null)
       }
     },
-    [client, fetchWebhooks],
+    [client, fetchWebhooks, encryptionSalt],
   )
 
   /**
@@ -140,8 +151,15 @@ const WebhooksTrigger = (): ReactElement => {
    */
   const handleDeleteWebhook = useCallback(
     async (webhook: Webhook) => {
-      await client.delete(webhook._id)
-      fetchWebhooks()
+      setDeletingWebhook(webhook._id)
+      try {
+        await client.delete(webhook._id)
+        fetchWebhooks()
+      } catch (error) {
+        console.error('Failed to delete webhook:', error)
+      } finally {
+        setDeletingWebhook(null)
+      }
     },
     [client, fetchWebhooks],
   )
@@ -171,9 +189,8 @@ const WebhooksTrigger = (): ReactElement => {
               <Heading as="h2" size={3}>
                 Deploy via Webhooks
               </Heading>
-              <Text size={2} style={{maxWidth: '60ch'}}>
-                This space allows you to deploy your static website after finishing content edits,
-                by manually calling a webhook that triggers a new build of your site.
+              <Text size={2} style={{maxWidth: '70ch'}}>
+                {options.text || defaultText}
               </Text>
             </Stack>
 
@@ -207,8 +224,8 @@ const WebhooksTrigger = (): ReactElement => {
                             color={webhook.lastRunStatus === 'success' ? 'green' : 'red'}
                           />
                           <Text size={1} muted>
-                            Last {webhook.lastRunStatus === 'success' ? 'success' : 'failed'} run:{' '}
-                            {new Date(webhook.lastRunTime).toLocaleString()}
+                            Last {webhook.lastRunStatus === 'success' ? 'successful' : 'failed'}{' '}
+                            run: {new Date(webhook.lastRunTime).toLocaleString()}
                           </Text>
                         </Flex>
                       )}
@@ -234,9 +251,10 @@ const WebhooksTrigger = (): ReactElement => {
                         style={{marginRight: '8px'}}
                       />
                       <Button
-                        icon={TrashIcon}
+                        icon={deletingWebhook === webhook._id ? Spinner : TrashIcon}
                         tone="default"
                         onClick={() => handleDeleteWebhook(webhook)}
+                        disabled={deletingWebhook === webhook._id}
                       />
                     </Flex>
                   </Flex>

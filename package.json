@@ -46,11 +46,14 @@
     "@sanity/icons": "^3.2.0",
     "@sanity/incompatible-plugin": "^1.0.4",
     "@sanity/ui": "^2.5.0",
-    "@types/react-dom": "^18.3.0"
+    "@types/react-dom": "^18.3.0",
+    "crypto-js": "^4.2.0",
+    "nanoid": "^5.0.7"
   },
   "devDependencies": {
     "@sanity/pkg-utils": "^6.10.0",
     "@sanity/plugin-kit": "^4.0.17",
+    "@types/crypto-js": "^4.2.2",
     "@types/react": "^18.3.3",
     "@typescript-eslint/eslint-plugin": "^7",
     "@typescript-eslint/parser": "^7",
