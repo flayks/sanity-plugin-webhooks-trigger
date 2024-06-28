@@ -1,7 +1,7 @@
 import {definePlugin} from 'sanity'
 import {route} from 'sanity/router'
 
-import type {WebhooksTriggerConfig} from './types'
+import type {WebhooksTriggerOptions} from './types'
 import WebhooksTrigger from './webhooks-trigger'
 
 /**
@@ -19,8 +19,8 @@ import WebhooksTrigger from './webhooks-trigger'
  * })
  * ```
  */
-export const webhooksTrigger = definePlugin<WebhooksTriggerConfig | void>((options = {}) => {
-  const {name, title, ...config} = options || {}
+export const webhooksTrigger = definePlugin<WebhooksTriggerOptions | void>((config) => {
+  const {name, title, encryptionSalt, text} = config || {}
 
   return {
     name: 'sanity-plugin-webhooks-trigger',
@@ -29,7 +29,10 @@ export const webhooksTrigger = definePlugin<WebhooksTriggerConfig | void>((optio
         name: name || 'webhooks-trigger',
         title: title || 'Deploy',
         component: WebhooksTrigger,
-        options: config,
+        options: {
+          encryptionSalt,
+          text,
+        },
         router: route.create('/*'),
       },
     ],

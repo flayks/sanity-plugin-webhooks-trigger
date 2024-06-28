@@ -20,7 +20,7 @@ import {useClient} from 'sanity'
 
 import WebhookFormModal from './modal'
 import {decryptToken, encryptToken} from './security'
-import {Webhook, WebhooksTriggerConfig, WebhooksTriggerPluginTool} from './types'
+import {Webhook, WebhooksTriggerConfig} from './types'
 
 const theme = buildTheme()
 const WEBHOOK_TYPE = 'webhook_triggers'
@@ -28,7 +28,7 @@ const defaultText =
   'You can here deploy your static website after finishing content edits by manually calling a webhook that triggers a new build of your site. Or simply run a webhook from Sanity!'
 
 const WebhooksTrigger = ({tool}: WebhooksTriggerConfig): ReactElement => {
-  const {options} = tool as WebhooksTriggerPluginTool
+  const {options} = tool
   const encryptionSalt = options.encryptionSalt
 
   const client = useClient({apiVersion: '2021-06-07'})
@@ -58,7 +58,7 @@ const WebhooksTrigger = ({tool}: WebhooksTriggerConfig): ReactElement => {
     async (webhook: Partial<Webhook>) => {
       if (!webhook.name || !webhook.url || !webhook.method) return
 
-      if (webhook.authToken) {
+      if (webhook.authToken && encryptionSalt) {
         webhook.authToken = encryptToken(webhook.authToken, encryptionSalt)
       }
 
@@ -103,9 +103,10 @@ const WebhooksTrigger = ({tool}: WebhooksTriggerConfig): ReactElement => {
           const response = await fetch(webhook.url, {
             method: webhook.method,
             headers: {
-              ...(webhook.authToken && {
-                Authorization: `Bearer ${decryptToken(webhook.authToken, encryptionSalt)}`,
-              }),
+              ...(webhook.authToken &&
+                encryptionSalt && {
+                  Authorization: `Bearer ${decryptToken(webhook.authToken, encryptionSalt)}`,
+                }),
               ...(isGithubAction && {
                 Accept: 'application/vnd.github+json',
                 'X-GitHub-Api-Version': '2022-11-28',
