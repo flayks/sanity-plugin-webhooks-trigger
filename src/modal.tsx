@@ -16,6 +16,8 @@ const WebhookFormModal = ({
   const [authToken, setAuthToken] = useState<Webhook['authToken']>(webhook.authToken || undefined)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  const buttonText = webhook._id ? 'Save changes' : 'Add Webhook'
+
   /**
    * Handle form submission
    */
@@ -92,12 +94,14 @@ const WebhookFormModal = ({
             </Grid>
 
             <Button
-              textAlign="center"
-              text={webhook._id ? 'Save changes' : 'Add Webhook'}
-              tone="primary"
               type="submit"
-              disabled={isSubmitting}
+              text={isSubmitting ? undefined : buttonText}
+              textAlign="center"
+              justify="center"
+              tone="primary"
               icon={isSubmitting ? Spinner : undefined}
+              disabled={isSubmitting}
+              style={{minHeight: 33}}
             />
           </Stack>
         </form>
