@@ -1,10 +1,21 @@
-## sanity-plugin-trigger-webhook
+<h2 align="center">
+  ⚡️ Trigger Webhooks in Sanity ⚡️
+</h2>
+<p align="center">
+  Manually trigger Webhooks right from your Studio.<br/ >
+  Useful for rebuilding your website using static site generator (Astro, SvelteKit, Next.js, 11ty, etc).  
+</p>
 
-This Sanity v3 plugin allows you to manually trigger Webhooks right from your Studio. That is particularly useful when you want to trigger a build on your static site generator (Astro, SvelteKit, Next.js, Elenty, etc) when you are done editing content in Sanity.  
+![screenshot](https://github.com/flayks/sanity-plugin-webhooks-trigger/assets/273716/7dfdf824-aa87-45a2-9e6c-66919c18081e)
+
+
+## Motivation
+
+Instead of rebuilding every single time a document is published using the GROQ-powered webhooks, just do it when you are (or your client is) done editing content!
 
 For instance, you can trigger a build on [Vercel](https://vercel.com/docs/deployments/deploy-hooks), [Netlify](https://docs.netlify.com/configure-builds/build-hooks/), [Cloudflare Pages](https://developers.cloudflare.com/pages/configuration/deploy-hooks/), [Github Actions](https://docs.github.com/en/rest/repos/repos#create-a-repository-dispatch-event) or even any other Webhook or your choice.
 
-Behind the scenes, it stores a document for each Webhook in Sanity's dataset, with its name, URL, method (POST/GET) and auth token if needed. It also shows its last run status and date.
+Behind the scenes, it stores in your Sanity's dataset a document for each Webhook, with its name, URL, method (POST/GET) and the encrypted auth token if needed. It also shows its last run status and date.
 
 Openly –and heavily– inspired from [sanity-plugin-vercel-deploy](https://github.com/ndimatteo/sanity-plugin-vercel-deploy) by [ndimatteo](https://github.com/ndimatteo).
 
@@ -44,7 +55,8 @@ export default defineConfig({
 })
 ```
 
-⚠️ If you are using an auth token with your Webhook, it is strongy recommended to use an encryption salt. You can generate one using `openssl rand -hex 64` or any other method.
+⚠️ If you are using an auth token with your Webhook, it is strongy recommended to use an encryption salt, or it could be [subject to be exposed](https://medium.com/poka-techblog/the-best-way-to-store-secrets-in-your-app-is-not-to-store-secrets-in-your-app-308a6807d3ed)!   
+You can generate one using `openssl rand -hex 64` or any other method.
 
 ## License
 
