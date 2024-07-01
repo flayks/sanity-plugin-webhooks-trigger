@@ -97,7 +97,8 @@ const WebhooksTrigger = ({tool}: WebhooksTriggerConfig): ReactElement => {
       if (webhook.url) {
         setTriggeringWebhook(webhook._id)
 
-        const isGithubAction = webhook.url.includes('github.com')
+        const hostname = new URL(webhook.url).hostname
+        const isGithubAction = hostname === 'github.com' || hostname.endsWith('.github.com')
 
         try {
           const response = await fetch(webhook.url, {
