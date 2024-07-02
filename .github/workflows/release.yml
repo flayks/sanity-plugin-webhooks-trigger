@@ -14,9 +14,29 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
+      # Release
       - name: Create release
         uses: googleapis/release-please-action@v4
+        id: release
         with:
           token: ${{ secrets.GH_TOKEN }}
           release-type: node
 
+      # Publication steps
+      - uses: actions/checkout@v4
+        if: ${{ steps.release.outputs.release_created }}
+
+      - uses: actions/setup-node@v4
+        if: ${{ steps.release.outputs.release_created }}
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+
+        # Publish
+      - run: npm ci
+        if: ${{ steps.release.outputs.release_created }}
+
+      - run: npm publish
+        if: ${{ steps.release.outputs.release_created }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
