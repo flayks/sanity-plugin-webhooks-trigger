@@ -23,16 +23,16 @@ Openly –and heavily– inspired from [sanity-plugin-vercel-deploy](https://git
 
 ```sh
 # npm
-npm i sanity-plugin-trigger-webhook
+npm i sanity-plugin-webhooks-trigger
 
 # yarn
-yarn install sanity-plugin-trigger-webhook
+yarn install sanity-plugin-webhooks-trigger
 
 # pnpm 
-pnpm i sanity-plugin-trigger-webhook
+pnpm i sanity-plugin-webhooks-trigger
 
 # bun 
-bun i sanity-plugin-trigger-webhook
+bun i sanity-plugin-webhooks-trigger
 ```
 
 ## Usage
@@ -41,7 +41,7 @@ Add it as a plugin in `sanity.config.ts` (or .js):
 
 ```ts
 import { defineConfig } from 'sanity'
-import { webhooksTrigger } from 'sanity-plugin-trigger-webhook'
+import { webhooksTrigger } from 'sanity-plugin-webhooks-trigger'
 
 export default defineConfig({
   //...
