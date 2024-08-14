@@ -3,7 +3,7 @@
 </h2>
 <p align="center">
   Manually trigger Webhooks right from your Studio.<br/ >
-  Useful for rebuilding your website using static site generator (Astro, SvelteKit, Next.js, 11ty, etc).  
+  Useful for rebuilding your website using static site generator (Astro, SvelteKit, Next.js, 11ty, Jekyll, Hugo, etc).  
 </p>
 
 ![screenshot](https://github.com/flayks/sanity-plugin-webhooks-trigger/assets/273716/7dfdf824-aa87-45a2-9e6c-66919c18081e)
@@ -11,11 +11,11 @@
 
 ## Motivation
 
-Instead of rebuilding every single time a document is published using the GROQ-powered webhooks, just do it when you are (or your client is) done editing content!
+Instead of rebuilding your site every single time a document is published using the GROQ-powered webhooks, just do it when you are (or your client is) done editing content!
 
 For instance, you can trigger a build on [Vercel](https://vercel.com/docs/deployments/deploy-hooks), [Netlify](https://docs.netlify.com/configure-builds/build-hooks/), [Cloudflare Pages](https://developers.cloudflare.com/pages/configuration/deploy-hooks/), [Github Actions](https://docs.github.com/en/rest/repos/repos#create-a-repository-dispatch-event) or even any other Webhook or your choice.
 
-Behind the scenes, it stores in your Sanity's dataset a document for each Webhook, with its name, URL, method (POST/GET) and the encrypted auth token if needed. It also shows its last run status and date.
+Behind the scenes, it stores a document in your Sanity's dataset for each Webhook, with its name, URL, method (POST/GET) and the encrypted auth token if needed. It also shows the last run status and date.
 
 Openly –and heavily– inspired from [sanity-plugin-vercel-deploy](https://github.com/ndimatteo/sanity-plugin-vercel-deploy) by [ndimatteo](https://github.com/ndimatteo).
 
