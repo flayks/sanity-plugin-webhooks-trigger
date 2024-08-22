@@ -49,7 +49,9 @@ export default defineConfig({
     webhooksTrigger({
       // title: 'Deploy',
       // text: 'Custom text',
-      // encryptionSalt: 'replace-me-with-a-strong-string'
+      // encryptionSalt: 'replace-me-with-a-strong-string',
+      // /** You can customize the event type name to trigger on your Github workflows */
+      // githubEventType: 'webhook-trigger',
     })
   ],
 })

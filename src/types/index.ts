@@ -4,8 +4,9 @@ export interface WebhooksTriggerOptions {
   name?: string
   icon?: React.ReactNode
   title?: string
-  encryptionSalt?: string
   text?: string
+  encryptionSalt?: string
+  githubEventType?: string
 }
 
 export interface WebhooksTriggerConfig {

@@ -115,8 +115,7 @@ const WebhooksTrigger = ({tool}: WebhooksTriggerConfig): ReactElement => {
             },
             body: JSON.stringify({
               ...(isGithubAction && {
-                // eslint-disable-next-line camelcase
-                event_type: 'webhook-trigger',
+                eventType: options.githubEventType,
               }),
             }),
           })
