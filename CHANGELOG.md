@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/flayks/sanity-plugin-webhooks-trigger/compare/v0.2.4...v0.3.0) (2024-08-22)
+
+
+### Features
+
+* add option to customize Github event type name ([7a50c15](https://github.com/flayks/sanity-plugin-webhooks-trigger/commit/7a50c158d34a53f3180083231ca25c925240d43a)), closes [#3](https://github.com/flayks/sanity-plugin-webhooks-trigger/issues/3)
+
 ## [0.2.3](https://github.com/flayks/sanity-plugin-webhooks-trigger/compare/v0.2.2...v0.2.3) (2024-07-01)
 
 
