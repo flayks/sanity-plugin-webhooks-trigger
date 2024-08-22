@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/flayks/sanity-plugin-webhooks-trigger/compare/v0.3.0...v0.3.1) (2024-08-22)
+
+
+### Bug Fixes
+
+* use event_type as key for GH action ([42c9dd7](https://github.com/flayks/sanity-plugin-webhooks-trigger/commit/42c9dd7f10e1493571a4db52914b2688cf2b184e))
+
 ## [0.3.0](https://github.com/flayks/sanity-plugin-webhooks-trigger/compare/v0.2.4...v0.3.0) (2024-08-22)
 
 
