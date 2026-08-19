@@ -10,96 +10,82 @@
   "bugs": {
     "url": "https://github.com/flayks/sanity-plugin-webhooks-trigger/issues"
   },
+  "license": "MIT",
+  "author": "Félix Péault (Flayks) <hello@flayks.com>",
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/flayks/sanity-plugin-webhooks-trigger.git"
   },
-  "license": "MIT",
-  "author": "Félix Péault (Flayks) <hello@flayks.com>",
-  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
   "type": "module",
+  "sideEffects": false,
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "source": "./src/index.ts",
-      "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
     "./package.json": "./package.json"
   },
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "files": [
-    "dist",
-    "sanity.json",
-    "src",
-    "v2-incompatible.js"
-  ],
+  "publishConfig": {
+    "exports": {
+      ".": "./dist/index.js",
+      "./package.json": "./package.json"
+    }
+  },
   "scripts": {
     "build": "plugin-kit verify-package --silent && pkg-utils build --strict --check --clean",
-    "format": "prettier --write --cache --ignore-unknown .",
+    "format": "oxfmt",
     "link-watch": "plugin-kit link-watch",
-    "lint": "eslint .",
+    "lint": "oxlint",
     "prepublishOnly": "npm run build",
     "test": "node --test --experimental-strip-types test/*.test.ts",
     "watch": "pkg-utils watch --strict"
   },
   "dependencies": {
-    "@sanity/icons": "^3.7.4",
-    "@sanity/incompatible-plugin": "^1.0.5",
-    "@sanity/ui": "^3.1.11",
-    "@types/react-dom": "^19.2.3",
+    "@sanity/icons": "^5.2.1",
+    "@sanity/ui": "^4.0.4",
     "crypto-js": "^4.2.0",
-    "nanoid": "^5.1.6"
+    "nanoid": "^6.0.1"
   },
   "devDependencies": {
-    "@sanity/pkg-utils": "^10.2.5",
-    "@sanity/plugin-kit": "^4.0.20",
-    "@semantic-release/changelog": "^6.0.3",
+    "@sanity/pkg-utils": "^12.2.0",
+    "@sanity/plugin-kit": "^10.0.6",
+    "@semantic-release/changelog": "^7.0.0",
     "@semantic-release/commit-analyzer": "^13.0.1",
-    "@semantic-release/git": "^10.0.1",
-    "@semantic-release/github": "^12.0.2",
-    "@semantic-release/npm": "^13.1.3",
-    "@semantic-release/release-notes-generator": "^14.1.0",
+    "@semantic-release/git": "^11.0.1",
+    "@semantic-release/github": "^12.0.9",
+    "@semantic-release/npm": "^13.1.5",
+    "@semantic-release/release-notes-generator": "^14.1.1",
     "@types/crypto-js": "^4.2.2",
-    "@typescript-eslint/eslint-plugin": "^8",
-    "@typescript-eslint/parser": "^8",
-    "@types/react": "^19.2.7",
-    "eslint": "^9",
-    "eslint-config-prettier": "^10",
-    "eslint-config-sanity": "^7.1.4",
-    "eslint-plugin-prettier": "^5.5.4",
-    "eslint-plugin-react": "^7.37.5",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "prettier": "^3.7.4",
-    "prettier-plugin-packagejson": "^2.5.20",
-    "react": "^19.2.3",
-    "react-dom": "^19.2.3",
-    "sanity": "^5.1.0",
-    "semantic-release": "^25.0.2",
-    "styled-components": "^6.1.19",
-    "typescript": "^5.9"
+    "@types/node": "^26.2.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "oxfmt": "^0.64.0",
+    "oxlint": "^1.79.0",
+    "oxlint-tsgolint": "^7.0.2001",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "sanity": "^6.10.1",
+    "semantic-release": "^25.0.9",
+    "styled-components": "^6.5.3",
+    "typescript": "^6"
   },
   "peerDependencies": {
     "react": "^19",
-    "sanity": "^3 || ^4 || ^5 || ^6"
+    "sanity": "^5 || ^6"
+  },
+  "overrides": {
+    "oxfmt": "$oxfmt"
   },
   "engines": {
-    "node": ">=22.12"
+    "node": ">=20.19 <22 || >=22.12"
   },
-  "publishConfig": {
-    "exports": {
-      ".": {
-        "import": "./dist/index.js",
-        "default": "./dist/index.js"
-      },
-      "./package.json": "./package.json"
-    }
-  },
-  "browserslist": "extends @sanity/browserslist-config",
   "sanityPlugin": {
     "verifyPackage": {
-      "eslintImports": false,
-      "nodeEngine": false
+      "tsconfig": false
     }
   }
 }
