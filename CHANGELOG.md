@@ -1,3 +1,29 @@
+# [1.0.0](https://github.com/flayks/sanity-plugin-webhooks-trigger/compare/v0.9.0...v1.0.0) (2026-08-19)
+
+
+* chore!: drop the Studio v2 compatibility shim ([ecb6079](https://github.com/flayks/sanity-plugin-webhooks-trigger/commit/ecb6079c755262826486bbbb07ff2d9d7bfa81b9))
+* chore(deps)!: upgrade to Sanity Studio v6 ([63814c7](https://github.com/flayks/sanity-plugin-webhooks-trigger/commit/63814c7d428d1bb388d02843ff5bd414c9d4c1e8))
+
+
+### Bug Fixes
+
+* **build:** compile JSX in dist instead of shipping it raw ([3c47414](https://github.com/flayks/sanity-plugin-webhooks-trigger/commit/3c4741427990699e921cc358962e8bd11bec9ccf))
+* **config:** forward every plugin option to the tool ([804536f](https://github.com/flayks/sanity-plugin-webhooks-trigger/commit/804536f6dc5d77221fa07e0c9add7087b20c9d35))
+* **github:** never attach a request body to GET requests ([552575e](https://github.com/flayks/sanity-plugin-webhooks-trigger/commit/552575e678ff8630fc36ec7b6d314a8d44c61ec6))
+* **modal:** stop re-encrypting the stored auth token on edit ([e1c1a1a](https://github.com/flayks/sanity-plugin-webhooks-trigger/commit/e1c1a1a80e08c7f0aa6868f6ce82d7d79232f624))
+* **security:** throw when the auth token cannot be decrypted ([b4f0268](https://github.com/flayks/sanity-plugin-webhooks-trigger/commit/b4f02686ecc1ef27b74721af31dc641c3e27586d))
+
+
+### Features
+
+* **ui:** show why a run failed, confirm deletes, trigger in parallel ([7cb5db2](https://github.com/flayks/sanity-plugin-webhooks-trigger/commit/7cb5db266a3a5e31b007b42d4c2263a267e3730e))
+
+
+### BREAKING CHANGES
+
+* no Studio v2 incompatibility dialog.
+* requires Sanity Studio v6 and React 19.
+
 # [0.9.0](https://github.com/flayks/sanity-plugin-webhooks-trigger/compare/v0.8.1...v0.9.0) (2026-06-11)
 
 
