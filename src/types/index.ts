@@ -25,12 +25,16 @@ export interface Webhook {
   githubEventType?: string
   lastRunTime?: string
   lastRunStatus?: 'success' | 'failed' | 'triggered'
+  lastRunMessage?: string
 }
+
+export type RunResult = Pick<Webhook, 'lastRunStatus' | 'lastRunMessage'>
 
 export interface WebhookFormModalProps {
   defaultGithubEventType: string
+  encryptionEnabled: boolean
   webhook: Partial<Webhook>
   onClose: () => void
-  onSubmit: (webhook: Partial<Webhook>) => void
+  onSubmit: (webhook: Partial<Webhook>) => Promise<void>
   title: string
 }

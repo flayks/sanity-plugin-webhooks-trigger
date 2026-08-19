@@ -1,24 +1,26 @@
 import {Box, Button, Dialog, Grid, Label, Select, Spinner, Stack, Text, TextInput} from '@sanity/ui'
-import {FormEvent, ReactElement, useCallback, useState} from 'react'
+import {ReactElement, useState, type SubmitEvent} from 'react'
 
 import {isGithubWebhookUrl} from './github-dispatch'
 import {Webhook, WebhookFormModalProps} from './types'
 
 const WebhookFormModal = ({
   defaultGithubEventType,
+  encryptionEnabled,
   webhook,
   onSubmit,
   onClose,
   title,
 }: WebhookFormModalProps): ReactElement => {
-  const [name, setName] = useState<Webhook['name']>(webhook.name || undefined)
-  const [url, setUrl] = useState<Webhook['url']>(webhook.url || undefined)
-  const [method, setMethod] = useState<Webhook['method']>(webhook.method || undefined)
-  const [authToken, setAuthToken] = useState<Webhook['authToken']>(webhook.authToken || undefined)
-  const [githubEventType, setGithubEventType] = useState<Webhook['githubEventType']>(
-    webhook.githubEventType || undefined,
-  )
+  const [name, setName] = useState(webhook.name)
+  const [url, setUrl] = useState(webhook.url)
+  const [method, setMethod] = useState(webhook.method)
+  const [githubEventType, setGithubEventType] = useState(webhook.githubEventType)
+  // Never prefill: stored token is encrypted, resubmitting would encrypt it twice
+  const [authToken, setAuthToken] = useState<Webhook['authToken']>(undefined)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const hasStoredToken = Boolean(webhook.authToken)
   const showGithubEventType = isGithubWebhookUrl(url)
 
   const buttonText = webhook._id ? 'Save changes' : 'Add Webhook'
@@ -26,35 +28,33 @@ const WebhookFormModal = ({
   /**
    * Handle form submission
    */
-  const handleSubmit = useCallback(
-    async (event: FormEvent) => {
-      event.preventDefault()
+  const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setIsSubmitting(true)
 
-      setIsSubmitting(true)
+    const {authToken: _token, githubEventType: _eventType, ...rest} = webhook
 
-      const updatedWebhook: Partial<Webhook> = {
-        ...webhook,
-        name,
-        url,
-        method,
-        ...(authToken && {authToken}),
-        ...(githubEventType && {githubEventType}),
-      }
+    await onSubmit({
+      ...rest,
+      name,
+      url,
+      method,
+      ...(authToken && {authToken}),
+      ...(githubEventType && {githubEventType}),
+    })
 
-      await onSubmit(updatedWebhook)
-
-      setIsSubmitting(false)
-    },
-    [authToken, githubEventType, method, name, onSubmit, url, webhook],
-  )
+    setIsSubmitting(false)
+  }
 
   return (
     <Dialog header={title} id="webhook-form-dialog" onClose={onClose} width={1} zOffset={1000}>
       <Box padding={4}>
         <form onSubmit={handleSubmit}>
-          <Stack space={4}>
-            <Stack space={3}>
-              <Label htmlFor="webhook-name">Name</Label>
+          <Stack gap={4}>
+            <Stack gap={3}>
+              <Label as="label" htmlFor="webhook-name">
+                Name
+              </Label>
               <TextInput
                 id="webhook-name"
                 value={name}
@@ -64,8 +64,10 @@ const WebhookFormModal = ({
               />
             </Stack>
 
-            <Stack space={3}>
-              <Label htmlFor="webhook-url">Webhook URL</Label>
+            <Stack gap={3}>
+              <Label as="label" htmlFor="webhook-url">
+                Webhook URL
+              </Label>
               <TextInput
                 id="webhook-url"
                 type="url"
@@ -76,35 +78,51 @@ const WebhookFormModal = ({
               />
             </Stack>
 
-            <Grid columns={[1, 1, 2]} gap={4}>
-              <Stack space={3}>
-                <Label htmlFor="webhook-method">Method</Label>
+            <Grid gridTemplateColumns={[1, 1, 2]} gap={4}>
+              <Stack gap={3}>
+                <Label as="label" htmlFor="webhook-method">
+                  Method
+                </Label>
                 <Select
                   id="webhook-method"
                   value={method}
                   required
-                  onChange={(event) => setMethod(event.currentTarget.value as 'GET' | 'POST')}
+                  onChange={(event) => {
+                    const {value} = event.currentTarget
+                    setMethod(value === 'GET' || value === 'POST' ? value : undefined)
+                  }}
                 >
-                  <option value="" />
+                  <option value="" disabled>
+                    Select a method
+                  </option>
                   <option value="POST">POST</option>
                   <option value="GET">GET</option>
                 </Select>
               </Stack>
-              <Stack space={3}>
-                <Label htmlFor="webhook-auth-token">Auth Token (Optional)</Label>
+              <Stack gap={3}>
+                <Label as="label" htmlFor="webhook-auth-token">
+                  Auth Token (Optional)
+                </Label>
                 <TextInput
                   id="webhook-auth-token"
                   type="password"
                   value={authToken}
-                  placeholder="sk-abc123…"
-                  onChange={(event) => setAuthToken(event.currentTarget.value)}
+                  placeholder={hasStoredToken ? 'Leave empty to keep current' : 'sk-abc123…'}
+                  onChange={(event) => setAuthToken(event.currentTarget.value || undefined)}
                 />
+                {!encryptionEnabled && (
+                  <Text size={1} muted>
+                    ⚠️ No <code>encryptionSalt</code> configured: the token is stored unencrypted.
+                  </Text>
+                )}
               </Stack>
             </Grid>
 
             {showGithubEventType && (
-              <Stack space={3}>
-                <Label htmlFor="webhook-github-event-type">GitHub Event Type (Optional)</Label>
+              <Stack gap={3}>
+                <Label as="label" htmlFor="webhook-github-event-type">
+                  GitHub Event Type (Optional)
+                </Label>
                 <TextInput
                   id="webhook-github-event-type"
                   value={githubEventType}
