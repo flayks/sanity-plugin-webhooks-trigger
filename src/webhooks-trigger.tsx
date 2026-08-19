@@ -1,9 +1,14 @@
-import {AddIcon, ClockIcon, EditIcon, TokenIcon, TrashIcon} from '@sanity/icons'
+import {AddIcon} from '@sanity/icons/Add'
+import {ClockIcon} from '@sanity/icons/Clock'
+import {EditIcon} from '@sanity/icons/Edit'
+import {TokenIcon} from '@sanity/icons/Token'
+import {TrashIcon} from '@sanity/icons/Trash'
 import {
   Box,
   Button,
   Card,
   Container,
+  Dialog,
   Flex,
   Heading,
   Spinner,
@@ -12,6 +17,7 @@ import {
   ThemeProvider,
 } from '@sanity/ui'
 import {buildTheme} from '@sanity/ui/theme'
+import {Tooltip} from '@sanity/ui/tooltip'
 import {customAlphabet} from 'nanoid'
 import {useCallback, useEffect, useState, type ReactElement} from 'react'
 import {useClient} from 'sanity'
@@ -23,7 +29,7 @@ import {
 } from './github-dispatch'
 import WebhookFormModal from './modal'
 import {decryptToken, encryptToken} from './security'
-import {Webhook, WebhooksTriggerConfig} from './types'
+import {RunResult, Webhook, WebhooksTriggerConfig} from './types'
 
 const theme = buildTheme()
 const WEBHOOK_TYPE = 'webhook_triggers'
@@ -40,30 +46,78 @@ const RUN_STATUS_CONFIG = {
   failed: {color: 'red', label: 'failed'},
 } as const
 
+/**
+ * Pull the API error out of a failed response, so it shows up in the UI instead of the console
+ */
+const readErrorMessage = async (response: Response): Promise<string> => {
+  const body = await response.json().catch(() => null)
+  const detail = body?.message || response.statusText
+
+  return detail ? `${response.status}: ${detail}` : `${response.status}`
+}
+
+/**
+ * Last run date, with the error behind a tooltip when the run failed
+ */
+const LastRun = ({webhook}: {webhook: Webhook}): ReactElement | null => {
+  const {lastRunTime, lastRunStatus, lastRunMessage} = webhook
+  if (!lastRunTime || !lastRunStatus) return null
+
+  const {color, label} = RUN_STATUS_CONFIG[lastRunStatus]
+  const line = (
+    <Flex gap={1} align="center" style={lastRunMessage ? {cursor: 'help'} : undefined}>
+      <ClockIcon fontSize={'1em'} color={color} style={{flexShrink: 0}} />
+      <Text size={1} muted>
+        Last {label} run: {new Date(lastRunTime).toLocaleString()}
+      </Text>
+    </Flex>
+  )
+
+  if (!lastRunMessage) return line
+
+  return (
+    <Tooltip
+      content={
+        <Box style={{maxWidth: 320}}>
+          <Text size={1}>{lastRunMessage}</Text>
+        </Box>
+      }
+      padding={2}
+      placement="top"
+      portal
+      delay={{open: 200}}
+    >
+      {line}
+    </Tooltip>
+  )
+}
+
 const WebhooksTrigger = ({tool}: WebhooksTriggerConfig): ReactElement => {
   const {options} = tool
   const {encryptionSalt, text, githubEventType, triggerAll} = options
   const defaultGithubEventType = githubEventType || DEFAULT_GITHUB_EVENT_TYPE
 
-  const client = useClient({apiVersion: '2021-06-07'})
+  const client = useClient({apiVersion: '2026-08-19'})
 
   const [webhooks, setWebhooks] = useState<Webhook[]>([])
-  const [showModal, setShowModal] = useState(false)
+  // Holds the webhook being edited, or an empty object when adding a new one
+  const [modalWebhook, setModalWebhook] = useState<Partial<Webhook> | null>(null)
   const [triggeringWebhook, setTriggeringWebhook] = useState<string | null>(null)
   const [triggeringAll, setTriggeringAll] = useState(false)
-  const [editingWebhook, setEditingWebhook] = useState<Webhook | null>(null)
   const [deletingWebhook, setDeletingWebhook] = useState<string | null>(null)
+  const [confirmingDelete, setConfirmingDelete] = useState<Webhook | null>(null)
 
   /**
    * Fetch all Webhooks
    */
   const fetchWebhooks = useCallback(async () => {
-    const result = await client.fetch(`*[_type == "${WEBHOOK_TYPE}"]`)
-    setWebhooks(result)
+    setWebhooks(await client.fetch(`*[_type == "${WEBHOOK_TYPE}"] | order(_createdAt asc)`))
   }, [client])
 
   useEffect(() => {
-    fetchWebhooks()
+    // Loading the list is exactly the external-system sync an effect is for
+    // oxlint-disable-next-line react/set-state-in-effect
+    void fetchWebhooks()
   }, [fetchWebhooks])
 
   /**
@@ -80,43 +134,30 @@ const WebhooksTrigger = ({tool}: WebhooksTriggerConfig): ReactElement => {
       if (webhook._id) {
         // Edit webhook
         let patch = client.patch(webhook._id).set(webhook)
-        if (!webhook.githubEventType) {
-          patch = patch.unset(['githubEventType'])
-        }
+        if (!webhook.githubEventType) patch = patch.unset(['githubEventType'])
         await patch.commit()
       } else {
         // Create new webhook
         await client.create({
-          _type: WEBHOOK_TYPE,
-          _id: `${WEBHOOK_TYPE}.${generateId()}`,
           ...webhook,
+          _type: WEBHOOK_TYPE,
+          // The dot keeps the document private: it needs an authenticated read
+          _id: `${WEBHOOK_TYPE}.${generateId()}`,
         })
       }
 
-      setShowModal(false)
-      setEditingWebhook(null)
-      fetchWebhooks()
+      setModalWebhook(null)
+      await fetchWebhooks()
     },
     [client, fetchWebhooks, encryptionSalt],
   )
 
   /**
-   * Close a modal
+   * Send a webhook request and report how it went, without touching the document
    */
-  const handleCloseModal = useCallback(() => {
-    setShowModal(false)
-    setEditingWebhook(null)
-  }, [])
-
-  /**
-   * Trigger a single webhook and record its status
-   */
-  const handleTriggerWebhook = useCallback(
-    async (webhook: Webhook) => {
-      if (!webhook.url) return
-      setTriggeringWebhook(webhook._id)
-
-      let lastRunStatus: Webhook['lastRunStatus'] = 'failed'
+  const runWebhook = useCallback(
+    async (webhook: Webhook): Promise<RunResult> => {
+      if (!webhook.url) return {lastRunStatus: 'failed', lastRunMessage: 'This webhook has no URL.'}
 
       try {
         const authToken =
@@ -138,20 +179,57 @@ const WebhooksTrigger = ({tool}: WebhooksTriggerConfig): ReactElement => {
           }),
         )
 
-        lastRunStatus = isGithub ? (response.ok ? 'success' : 'failed') : 'triggered'
+        if (!isGithub) return {lastRunStatus: 'triggered'}
+        if (response.ok) return {lastRunStatus: 'success'}
+
+        return {lastRunStatus: 'failed', lastRunMessage: await readErrorMessage(response)}
       } catch (error) {
         console.error('Failed to trigger webhook:', error)
+
+        return {
+          lastRunStatus: 'failed',
+          lastRunMessage: error instanceof Error ? error.message : String(error),
+        }
       }
+    },
+    [defaultGithubEventType, encryptionSalt],
+  )
 
-      await client
-        .patch(webhook._id)
-        .set({lastRunTime: new Date().toISOString(), lastRunStatus})
-        .commit()
+  /**
+   * Fire every request in parallel, then record all results in a single transaction
+   */
+  const triggerWebhooks = useCallback(
+    async (targets: Webhook[]) => {
+      if (!targets.length) return
 
-      fetchWebhooks()
+      const results = await Promise.all(targets.map(runWebhook))
+      const transaction = targets.reduce((tx, webhook, index) => {
+        const {lastRunStatus, lastRunMessage} = results[index]
+        const patch = client
+          .patch(webhook._id)
+          .set({lastRunTime: new Date().toISOString(), lastRunStatus})
+
+        return tx.patch(
+          lastRunMessage ? patch.set({lastRunMessage}) : patch.unset(['lastRunMessage']),
+        )
+      }, client.transaction())
+
+      await transaction.commit()
+      await fetchWebhooks()
+    },
+    [client, fetchWebhooks, runWebhook],
+  )
+
+  /**
+   * Trigger a single webhook and record its status
+   */
+  const handleTriggerWebhook = useCallback(
+    async (webhook: Webhook) => {
+      setTriggeringWebhook(webhook._id)
+      await triggerWebhooks([webhook])
       setTriggeringWebhook(null)
     },
-    [client, defaultGithubEventType, fetchWebhooks, encryptionSalt],
+    [triggerWebhooks],
   )
 
   /**
@@ -159,24 +237,20 @@ const WebhooksTrigger = ({tool}: WebhooksTriggerConfig): ReactElement => {
    */
   const handleTriggerAllWebhooks = useCallback(async () => {
     setTriggeringAll(true)
-
-    // Trigger all webhooks in sequence
-    for (const webhook of webhooks) {
-      await handleTriggerWebhook(webhook)
-    }
-
+    await triggerWebhooks(webhooks)
     setTriggeringAll(false)
-  }, [webhooks, handleTriggerWebhook])
+  }, [triggerWebhooks, webhooks])
 
   /**
    * Delete a Webhook
    */
   const handleDeleteWebhook = useCallback(
     async (webhook: Webhook) => {
+      setConfirmingDelete(null)
       setDeletingWebhook(webhook._id)
       try {
         await client.delete(webhook._id)
-        fetchWebhooks()
+        await fetchWebhooks()
       } catch (error) {
         console.error('Failed to delete webhook:', error)
       } finally {
@@ -185,21 +259,6 @@ const WebhooksTrigger = ({tool}: WebhooksTriggerConfig): ReactElement => {
     },
     [client, fetchWebhooks],
   )
-
-  /**
-   * Open modal for editing a webhook
-   */
-  const handleEditWebhook = useCallback((webhook: Webhook) => {
-    setEditingWebhook(webhook)
-    setShowModal(true)
-  }, [])
-
-  /**
-   * Open modal for adding a new webhook
-   */
-  const handleAddWebhook = useCallback(() => {
-    setShowModal(true)
-  }, [])
 
   return (
     <ThemeProvider theme={theme}>
@@ -212,7 +271,7 @@ const WebhooksTrigger = ({tool}: WebhooksTriggerConfig): ReactElement => {
             direction={['column', 'column', 'row']}
             justify={['flex-start', 'flex-start', 'space-between']}
           >
-            <Stack space={4} style={{flex: 1, minWidth: 0}}>
+            <Stack gap={4} style={{flex: 1, minWidth: 0}}>
               <Heading as="h2" size={3}>
                 Deploy via Webhooks
               </Heading>
@@ -222,94 +281,91 @@ const WebhooksTrigger = ({tool}: WebhooksTriggerConfig): ReactElement => {
             </Stack>
 
             <Box style={{flexShrink: 0}}>
-              <Button icon={AddIcon} text="Add Webhook" tone="primary" onClick={handleAddWebhook} />
+              <Button
+                icon={AddIcon}
+                text="Add Webhook"
+                tone="primary"
+                onClick={() => setModalWebhook({})}
+              />
             </Box>
           </Flex>
 
           {/* Has items */}
           {webhooks.length > 0 ? (
             <>
-              <Stack space={4} marginTop={[5, 5, 6]}>
-                {webhooks.map((webhook) => (
-                  <Card key={webhook._id} padding={3} radius={2} shadow={1}>
-                    <Flex
-                      align="flex-start"
-                      direction={['column', 'column', 'row']}
-                      justify={['flex-start', 'flex-start', 'space-between']}
-                    >
-                      <Stack space={1}>
-                        <Heading as="h3" size={1} style={{marginBottom: '0.5em'}}>
-                          {webhook.name}
-                        </Heading>
+              <Stack gap={4} marginTop={[5, 5, 6]}>
+                {webhooks.map((webhook) => {
+                  const isTriggering = triggeringAll || triggeringWebhook === webhook._id
 
-                        <Box
-                          style={{
-                            display: 'grid',
-                            gridTemplateColumns: `${webhook.authToken ? 'auto ' : ''}minmax(0, 1fr) auto`,
-                            alignItems: 'center',
-                            columnGap: 4,
-                            width: '100%',
-                          }}
-                        >
-                          {webhook.authToken && <TokenIcon fontSize={'1em'} />}
-                          <Text size={1} muted title={webhook.url} textOverflow="ellipsis">
-                            {webhook.url}
-                          </Text>
-                          <Text size={1} muted style={{whiteSpace: 'nowrap'}}>
-                            ({webhook.method})
-                          </Text>
-                        </Box>
+                  return (
+                    <Card key={webhook._id} padding={3} radius={2} shadow={1}>
+                      <Flex
+                        align="flex-start"
+                        direction={['column', 'column', 'row']}
+                        justify={['flex-start', 'flex-start', 'space-between']}
+                      >
+                        <Stack gap={1}>
+                          <Heading as="h3" size={1} style={{marginBottom: '0.5em'}}>
+                            {webhook.name}
+                          </Heading>
 
-                        {isGithubWebhookUrl(webhook.url) && webhook.githubEventType && (
-                          <Text size={1} muted>
-                            GitHub event type: {webhook.githubEventType}
-                          </Text>
-                        )}
-
-                        {webhook.lastRunTime && webhook.lastRunStatus && (
-                          <Flex gap={1} align="center">
-                            <ClockIcon
-                              fontSize={'1em'}
-                              color={RUN_STATUS_CONFIG[webhook.lastRunStatus].color}
-                              style={{flexShrink: 0}}
-                            />
-                            <Text size={1} muted>
-                              Last {RUN_STATUS_CONFIG[webhook.lastRunStatus].label} run:{' '}
-                              {new Date(webhook.lastRunTime).toLocaleString()}
+                          <Box
+                            style={{
+                              display: 'grid',
+                              gridTemplateColumns: `${webhook.authToken ? 'auto ' : ''}minmax(0, 1fr) auto`,
+                              alignItems: 'center',
+                              columnGap: 4,
+                              width: '100%',
+                            }}
+                          >
+                            {webhook.authToken && <TokenIcon fontSize={'1em'} />}
+                            <Text size={1} muted title={webhook.url} textOverflow="ellipsis">
+                              {webhook.url}
                             </Text>
-                          </Flex>
-                        )}
-                      </Stack>
+                            <Text size={1} muted style={{whiteSpace: 'nowrap'}}>
+                              ({webhook.method})
+                            </Text>
+                          </Box>
 
-                      <Box marginTop={[3, 3, 0]}>
-                        <Flex
-                          gap={2}
-                          wrap="wrap"
-                          justify={['flex-start', 'flex-start', 'flex-end']}
-                        >
-                          <Button
-                            tone="positive"
-                            onClick={() => handleTriggerWebhook(webhook)}
-                            disabled={triggeringWebhook === webhook._id}
-                            text={triggeringWebhook === webhook._id ? undefined : 'Trigger'}
-                            icon={triggeringWebhook === webhook._id ? Spinner : undefined}
-                          />
-                          <Button
-                            icon={EditIcon}
-                            tone="default"
-                            onClick={() => handleEditWebhook(webhook)}
-                          />
-                          <Button
-                            icon={deletingWebhook === webhook._id ? Spinner : TrashIcon}
-                            tone="default"
-                            onClick={() => handleDeleteWebhook(webhook)}
-                            disabled={deletingWebhook === webhook._id}
-                          />
-                        </Flex>
-                      </Box>
-                    </Flex>
-                  </Card>
-                ))}
+                          {isGithubWebhookUrl(webhook.url) && webhook.githubEventType && (
+                            <Text size={1} muted>
+                              GitHub event type: {webhook.githubEventType}
+                            </Text>
+                          )}
+
+                          <LastRun webhook={webhook} />
+                        </Stack>
+
+                        <Box marginTop={[3, 3, 0]}>
+                          <Flex
+                            gap={2}
+                            wrap="wrap"
+                            justify={['flex-start', 'flex-start', 'flex-end']}
+                          >
+                            <Button
+                              tone="positive"
+                              onClick={() => handleTriggerWebhook(webhook)}
+                              disabled={isTriggering}
+                              text={isTriggering ? undefined : 'Trigger'}
+                              icon={isTriggering ? Spinner : undefined}
+                            />
+                            <Button
+                              icon={EditIcon}
+                              mode="bleed"
+                              onClick={() => setModalWebhook(webhook)}
+                            />
+                            <Button
+                              icon={deletingWebhook === webhook._id ? Spinner : TrashIcon}
+                              mode="bleed"
+                              onClick={() => setConfirmingDelete(webhook)}
+                              disabled={deletingWebhook === webhook._id}
+                            />
+                          </Flex>
+                        </Box>
+                      </Flex>
+                    </Card>
+                  )
+                })}
               </Stack>
 
               {triggerAll !== false && webhooks.length > 1 && (
@@ -336,21 +392,49 @@ const WebhooksTrigger = ({tool}: WebhooksTriggerConfig): ReactElement => {
                   icon={AddIcon}
                   text="Add Webhook"
                   tone="primary"
-                  onClick={handleAddWebhook}
+                  onClick={() => setModalWebhook({})}
                 />
               </Flex>
             </Card>
           )}
         </Box>
 
-        {showModal && (
+        {modalWebhook && (
           <WebhookFormModal
             defaultGithubEventType={defaultGithubEventType}
-            webhook={editingWebhook || {}}
-            onClose={handleCloseModal}
+            encryptionEnabled={Boolean(encryptionSalt)}
+            webhook={modalWebhook}
+            onClose={() => setModalWebhook(null)}
             onSubmit={handleSubmitWebhook}
-            title={editingWebhook ? 'Edit Webhook' : 'Add New Webhook'}
+            title={modalWebhook._id ? 'Edit Webhook' : 'Add New Webhook'}
           />
+        )}
+
+        {confirmingDelete && (
+          <Dialog
+            header="Delete Webhook"
+            id="webhook-delete-dialog"
+            onClose={() => setConfirmingDelete(null)}
+            onClickOutside={() => setConfirmingDelete(null)}
+            width={0}
+            zOffset={1000}
+            footer={
+              <Flex gap={2} justify="flex-end" padding={3}>
+                <Button text="Cancel" mode="bleed" onClick={() => setConfirmingDelete(null)} />
+                <Button
+                  text="Delete"
+                  tone="critical"
+                  onClick={() => handleDeleteWebhook(confirmingDelete)}
+                />
+              </Flex>
+            }
+          >
+            <Box padding={4}>
+              <Text>
+                Delete <strong>{confirmingDelete.name}</strong>? This cannot be undone.
+              </Text>
+            </Box>
+          </Dialog>
         )}
       </Container>
     </ThemeProvider>
