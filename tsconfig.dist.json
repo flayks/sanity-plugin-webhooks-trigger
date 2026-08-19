@@ -8,9 +8,6 @@
     "./src/**/*.test.tsx"
   ],
   "compilerOptions": {
-    "rootDir": ".",
-    "outDir": "./dist",
-    "jsx": "preserve",
-    "emitDeclarationOnly": true
+    "jsx": "react-jsx"
   }
 }
