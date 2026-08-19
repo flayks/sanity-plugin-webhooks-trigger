@@ -51,6 +51,7 @@
     "nanoid": "^6.0.1"
   },
   "devDependencies": {
+    "@sanity/browserslist-config": "^1.0.5",
     "@sanity/pkg-utils": "^12.2.0",
     "@sanity/plugin-kit": "^10.0.6",
     "@semantic-release/changelog": "^7.0.0",
@@ -80,6 +81,7 @@
   "overrides": {
     "oxfmt": "$oxfmt"
   },
+  "browserslist": "extends @sanity/browserslist-config",
   "engines": {
     "node": ">=20.19 <22 || >=22.12"
   },
