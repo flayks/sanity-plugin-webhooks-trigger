@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/flayks/sanity-plugin-webhooks-trigger/compare/v1.0.0...v1.0.1) (2026-08-19)
+
+
+### Bug Fixes
+
+* **build:** restore the browserslist config ([9be9697](https://github.com/flayks/sanity-plugin-webhooks-trigger/commit/9be96976c4f1ba848f6d038679e05195c68724ca))
+
 # [1.0.0](https://github.com/flayks/sanity-plugin-webhooks-trigger/compare/v0.9.0...v1.0.0) (2026-08-19)
 
 
