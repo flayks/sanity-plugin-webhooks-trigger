@@ -27,6 +27,8 @@ export function buildWebhookRequestOptions({
   url,
 }: BuildWebhookRequestOptionsArgs): RequestInit {
   const isGithub = isGithubWebhookUrl(url)
+  // GET requests cannot carry a body, fetch throws if we attach one
+  const hasBody = isGithub && method !== 'GET'
   const headers: Record<string, string> = {}
 
   if (authToken) headers.Authorization = `Bearer ${authToken}`
@@ -40,7 +42,7 @@ export function buildWebhookRequestOptions({
     headers,
     // Endpoints rarely include CORS headers; lets 'no-cors' reach the server without the browser throwing on the response
     ...(isGithub ? {} : {mode: 'no-cors'}),
-    ...(isGithub && {
+    ...(hasBody && {
       body: JSON.stringify({event_type: githubEventType || DEFAULT_GITHUB_EVENT_TYPE}),
     }),
   }

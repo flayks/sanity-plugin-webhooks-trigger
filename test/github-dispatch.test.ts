@@ -7,6 +7,13 @@ import {
   isGithubWebhookUrl,
 } from '../src/github-dispatch.ts'
 
+/** Narrows the request body to a string before parsing it */
+const parseBody = (body: BodyInit | null | undefined): unknown => {
+  assert.ok(typeof body === 'string')
+
+  return JSON.parse(body)
+}
+
 test('detects GitHub webhook URLs', () => {
   assert.equal(isGithubWebhookUrl('https://api.github.com/repos/acme/repo/dispatches'), true)
   assert.equal(isGithubWebhookUrl('https://example.com/webhook'), false)
@@ -20,7 +27,7 @@ test('uses the provided GitHub event type in the request body', () => {
     url: 'https://api.github.com/repos/acme/repo/dispatches',
   })
 
-  assert.deepEqual(JSON.parse(String(requestOptions.body)), {
+  assert.deepEqual(parseBody(requestOptions.body), {
     event_type: 'webhook-specific',
   })
 })
@@ -31,9 +38,19 @@ test('falls back to the built-in GitHub event type when no event type is provide
     url: 'https://api.github.com/repos/acme/repo/dispatches',
   })
 
-  assert.deepEqual(JSON.parse(String(requestOptions.body)), {
+  assert.deepEqual(parseBody(requestOptions.body), {
     event_type: DEFAULT_GITHUB_EVENT_TYPE,
   })
+})
+
+test('never attaches a body to GET requests', () => {
+  const requestOptions = buildWebhookRequestOptions({
+    githubEventType: 'webhook-specific',
+    method: 'GET',
+    url: 'https://api.github.com/repos/acme/repo/dispatches',
+  })
+
+  assert.equal(requestOptions.body, undefined)
 })
 
 test('does not attach GitHub headers or body to non-GitHub webhooks', () => {
