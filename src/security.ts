@@ -17,5 +17,9 @@ export const encryptToken = (token: string, salt: string): string =>
  * @param encryptedToken - The encrypted token to decrypt
  * @param salt - The salt used for key derivation
  */
-export const decryptToken = (encryptedToken: string, salt: string): string =>
-  CryptoJS.AES.decrypt(encryptedToken, deriveKey(salt)).toString(CryptoJS.enc.Utf8)
+export const decryptToken = (encryptedToken: string, salt: string): string => {
+  const token = CryptoJS.AES.decrypt(encryptedToken, deriveKey(salt)).toString(CryptoJS.enc.Utf8)
+  // Empty means a wrong salt. Without this the request would silently go out unauthenticated
+  if (!token) throw new Error('Could not decrypt the auth token. Check your encryptionSalt.')
+  return token
+}
