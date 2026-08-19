@@ -3,8 +3,7 @@ import {defineConfig} from '@sanity/pkg-utils'
 export default defineConfig({
   dist: 'dist',
   tsconfig: 'tsconfig.dist.json',
-  extract: {
-    checkTypes: false,
+  tsdoc: {
     rules: {
       'ae-incompatible-release-tags': 'off',
       'ae-internal-missing-underscore': 'off',
