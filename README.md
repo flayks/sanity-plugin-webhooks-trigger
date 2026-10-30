@@ -83,6 +83,17 @@ on:
 
 The token needs the **Contents: read and write** permission. For an organisation repository, create the fine-grained token with the organisation as resource owner and have an admin approve it.
 
+## CORS
+
+Most hook endpoints don't send CORS headers, so webhooks to non-GitHub URLs are sent as `no-cors` requests. The endpoint gets the call, but:
+
+- the auth token is **not sent**, browsers drop `Authorization` in no-cors requests
+- a run shows _triggered_, since the response can't be read
+
+Tick **Use CORS** to send a regular request instead: the token is sent and a run shows the real result. The endpoint must allow CORS, including the `Authorization` header.
+
+GitHub webhooks always use regular requests, so they don't have this option.
+
 ## Auth tokens
 
 Webhook documents are created with a `.` in their `_id`, which [keeps them readable only by authenticated users](https://www.sanity.io/docs/ids). Set an `encryptionSalt` to also encrypt the token at rest — generate one with `openssl rand -hex 64`. Without it, tokens are stored in plain text.

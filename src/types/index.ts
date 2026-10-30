@@ -22,6 +22,8 @@ export interface Webhook {
   url: string | undefined
   method: 'GET' | 'POST' | undefined
   authToken?: string
+  /** Regular CORS request, so the token is sent and the response is read */
+  cors?: boolean
   githubEventType?: string
   lastRunTime?: string
   lastRunStatus?: 'success' | 'failed' | 'triggered'

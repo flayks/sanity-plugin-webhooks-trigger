@@ -26,6 +26,7 @@ import {
   buildWebhookRequestOptions,
   DEFAULT_GITHUB_EVENT_TYPE,
   isGithubWebhookUrl,
+  isNoCorsWebhook,
 } from './github-dispatch'
 import WebhookFormModal from './modal'
 import {decryptToken, encryptToken} from './security'
@@ -165,21 +166,19 @@ const WebhooksTrigger = ({tool}: WebhooksTriggerConfig): ReactElement => {
             ? decryptToken(webhook.authToken, encryptionSalt)
             : undefined
 
-        // Non-GitHub endpoints rarely support CORS. buildWebhookRequestOptions
-        // handles it with mode: 'no-cors', making the response opaque — so we
-        // mark those as 'triggered' (sent successfully, outcome unknown).
-        const isGithub = isGithubWebhookUrl(webhook.url)
+        // No-cors responses are opaque, so the run is only "triggered"
         const response = await fetch(
           webhook.url,
           buildWebhookRequestOptions({
             authToken,
             githubEventType: webhook.githubEventType || defaultGithubEventType,
             method: webhook.method,
+            cors: webhook.cors,
             url: webhook.url,
           }),
         )
 
-        if (!isGithub) return {lastRunStatus: 'triggered'}
+        if (isNoCorsWebhook(webhook)) return {lastRunStatus: 'triggered'}
         if (response.ok) return {lastRunStatus: 'success'}
 
         return {lastRunStatus: 'failed', lastRunMessage: await readErrorMessage(response)}

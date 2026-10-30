@@ -5,6 +5,7 @@ import {
   buildWebhookRequestOptions,
   DEFAULT_GITHUB_EVENT_TYPE,
   isGithubWebhookUrl,
+  isNoCorsWebhook,
 } from '../src/github-dispatch.ts'
 
 /** Narrows the request body to a string before parsing it */
@@ -51,6 +52,21 @@ test('never attaches a body to GET requests', () => {
   })
 
   assert.equal(requestOptions.body, undefined)
+})
+
+test('sends non-GitHub webhooks as no-cors unless cors is on', () => {
+  const url = 'https://example.com/webhook'
+
+  assert.equal(buildWebhookRequestOptions({method: 'POST', url}).mode, 'no-cors')
+  assert.equal(buildWebhookRequestOptions({method: 'POST', cors: false, url}).mode, 'no-cors')
+  assert.equal(buildWebhookRequestOptions({method: 'POST', cors: true, url}).mode, undefined)
+})
+
+test('never sends GitHub webhooks as no-cors', () => {
+  const url = 'https://api.github.com/repos/acme/repo/dispatches'
+
+  assert.equal(isNoCorsWebhook({url}), false)
+  assert.equal(buildWebhookRequestOptions({method: 'POST', url}).mode, undefined)
 })
 
 test('does not attach GitHub headers or body to non-GitHub webhooks', () => {
