@@ -1,4 +1,17 @@
-import {Box, Button, Dialog, Grid, Label, Select, Spinner, Stack, Text, TextInput} from '@sanity/ui'
+import {
+  Box,
+  Button,
+  Checkbox,
+  Dialog,
+  Flex,
+  Grid,
+  Label,
+  Select,
+  Spinner,
+  Stack,
+  Text,
+  TextInput,
+} from '@sanity/ui'
 import {ReactElement, useState, type SubmitEvent} from 'react'
 
 import {isGithubWebhookUrl} from './github-dispatch'
@@ -14,7 +27,8 @@ const WebhookFormModal = ({
 }: WebhookFormModalProps): ReactElement => {
   const [name, setName] = useState(webhook.name)
   const [url, setUrl] = useState(webhook.url)
-  const [method, setMethod] = useState(webhook.method)
+  const [method, setMethod] = useState<Webhook['method']>(webhook.method ?? 'POST')
+  const [cors, setCors] = useState(Boolean(webhook.cors))
   const [githubEventType, setGithubEventType] = useState(webhook.githubEventType)
   // Never prefill: stored token is encrypted, resubmitting would encrypt it twice
   const [authToken, setAuthToken] = useState<Webhook['authToken']>(undefined)
@@ -39,6 +53,7 @@ const WebhookFormModal = ({
       name,
       url,
       method,
+      cors,
       ...(authToken && {authToken}),
       ...(githubEventType && {githubEventType}),
     })
@@ -89,12 +104,9 @@ const WebhookFormModal = ({
                   required
                   onChange={(event) => {
                     const {value} = event.currentTarget
-                    setMethod(value === 'GET' || value === 'POST' ? value : undefined)
+                    setMethod(value === 'GET' ? 'GET' : 'POST')
                   }}
                 >
-                  <option value="" disabled>
-                    Select a method
-                  </option>
                   <option value="POST">POST</option>
                   <option value="GET">GET</option>
                 </Select>
@@ -117,6 +129,22 @@ const WebhookFormModal = ({
                 )}
               </Stack>
             </Grid>
+
+            {!showGithubEventType && (
+              <Stack gap={3}>
+                <Flex align="center" gap={3} as="label">
+                  <Checkbox
+                    id="webhook-cors"
+                    checked={cors}
+                    onChange={(event) => setCors(event.currentTarget.checked)}
+                  />
+                  <Text size={1}>Use CORS</Text>
+                </Flex>
+                <Text size={1} muted>
+                  Sends the auth token and shows the real result. The endpoint must allow CORS.
+                </Text>
+              </Stack>
+            )}
 
             {showGithubEventType && (
               <Stack gap={3}>
