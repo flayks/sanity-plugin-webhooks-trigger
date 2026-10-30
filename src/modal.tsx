@@ -14,7 +14,7 @@ const WebhookFormModal = ({
 }: WebhookFormModalProps): ReactElement => {
   const [name, setName] = useState(webhook.name)
   const [url, setUrl] = useState(webhook.url)
-  const [method, setMethod] = useState(webhook.method)
+  const [method, setMethod] = useState<Webhook['method']>(webhook.method ?? 'POST')
   const [githubEventType, setGithubEventType] = useState(webhook.githubEventType)
   // Never prefill: stored token is encrypted, resubmitting would encrypt it twice
   const [authToken, setAuthToken] = useState<Webhook['authToken']>(undefined)
@@ -89,12 +89,9 @@ const WebhookFormModal = ({
                   required
                   onChange={(event) => {
                     const {value} = event.currentTarget
-                    setMethod(value === 'GET' || value === 'POST' ? value : undefined)
+                    setMethod(value === 'GET' ? 'GET' : 'POST')
                   }}
                 >
-                  <option value="" disabled>
-                    Select a method
-                  </option>
                   <option value="POST">POST</option>
                   <option value="GET">GET</option>
                 </Select>
