@@ -1,3 +1,15 @@
+# [1.1.0](https://github.com/flayks/sanity-plugin-webhooks-trigger/compare/v1.0.1...v1.1.0) (2026-10-30)
+
+
+### Bug Fixes
+
+* **modal:** default the method to POST when adding a webhook ([8ea4eb2](https://github.com/flayks/sanity-plugin-webhooks-trigger/commit/8ea4eb2450c72e6d66fd3bc92ec647d20be8aaf1))
+
+
+### Features
+
+* **cors:** add a Use CORS option to webhooks ([72a6040](https://github.com/flayks/sanity-plugin-webhooks-trigger/commit/72a6040301f2eb4a7d7585f4bd8e9f66dc0595d2))
+
 ## [1.0.1](https://github.com/flayks/sanity-plugin-webhooks-trigger/compare/v1.0.0...v1.0.1) (2026-08-19)
 
 
